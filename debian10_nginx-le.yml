@@ -1,0 +1,209 @@
+- name: build out debian nginx with certbot web server, jpegleg style
+  hosts: deb-nginx-web
+  tasks:
+
+  - name: upgrade all packages
+    apt:
+      upgrade: yes
+      update_cache: yes
+      cache_valid_time: 86400
+
+  - name: install apt-transport-https
+    apt:
+      name: apt-transport-https
+      state: latest
+
+  - name: install ca-certificates
+    apt:
+      name: ca-certificates
+      state: latest
+
+  - name: install gnupg-agent
+    apt:
+      name: gnupg-agent
+      state: latest
+
+  - name: install software-properties-common
+    apt:
+      name: software-properties-common
+      state: latest
+
+  - name: install vim
+    apt:
+      name: vim
+      state: latest
+
+  - name: install ssh
+    apt:
+      name: ssh
+      state: latest
+
+  - name: install gpg
+    apt:
+      name: gpg
+      state: latest
+
+  - name: install tar
+    apt:
+      name: tar
+      state: latest
+
+  - name: install nginx
+    apt:
+      name: nginx
+      state: latest
+
+  - name: install rsync
+    apt:
+      name: rsync
+      state: latest
+
+  - name: install openssl
+    apt:
+      name: openssl
+      state: latest
+
+  - name: install python3
+    apt:
+      name: python3
+      state: latest
+
+  - name: install netcat
+    apt:
+      name: netcat
+      state: latest
+
+  - name: install curl
+    apt:
+      name: curl
+      state: latest
+
+  - name: install sec
+    apt:
+      name: sec
+      state: latest
+
+  - name: install ufw
+    apt:
+      name: ufw
+      state: latest
+
+  - name: install conntrack
+    apt:
+      name: conntrack
+      state: latest
+
+  - name: install fail2ban
+    apt:
+      name: fail2ban
+      state: latest
+
+  - name: install cerbot
+    apt:
+      name: certbot
+      state: latest
+
+  - name: install cerbot nginx plugin
+    apt:
+      name: python-certbot-nginx
+      state: latest
+
+  - name: install git
+    apt:
+      name: git
+      state: latest
+
+  - name: install tmux
+    apt:
+      name: tmux
+      state: latest
+
+  - name: set ufw to allow https for nginx
+    shell: ufw allow 'Nginx HTTPS'
+
+  - name: set ufw to allow http for nginx
+    shell: ufw allow 'Nginx HTTP'
+
+  - name: set ufw to allow ssh
+    shell: ufw allow ssh
+
+  - name: set ufw to reload
+    shell: ufw reload
+
+  - name: set ufw to enable
+    shell: echo "y" | ufw enable
+
+  - name: set fail2ban
+    shell: systemctl enable fail2ban
+
+  - name: restart fail2ban
+    shell: systemctl restart fail2ban
+
+  - name: disable default sec service
+    shell: systemctl disable sec
+
+  - name: flush connection tables job
+    shell: grep conntrack /etc/crontab || echo "08 8,12,16,0 * * * root /usr/sbin/conntrack -F" >> /etc/crontab
+
+  - name: deploy public file encryption key
+    copy:
+      src: /srv/gpg_pub.asc
+      dest: /root/public.asc
+      owner: root
+      group: root
+      mode: '0644'
+
+  - name: web content
+    copy:
+      src: /srv/target_web/
+      dest: /var/www/html/
+      owner: root
+      group: root
+      mode: '0644'
+
+  - name: recursive chown on the web root
+    shell: chown -R root:root /var/www/html/
+
+  - name: remove default file
+    shell: rm -f /var/www/html/index.nginx-debian.html
+
+  - name: import encryption key
+    shell: gpg --import /root/public.asc
+
+  - name: git clone for bashrc
+    shell: git clone https://github.com/jpegleg/metarc
+    
+  - name: git clone for vimrc
+    shell: git clone https://github.com/jpegleg/jpegleg-vimrc
+ 
+  - name: apply metarc
+    shell: cp metarc/metaRC ~/.bashrc
+    
+  - name: apply vimrc
+    shell: cp jpegleg-vimrc/.vimrc-pablo ~/.vimrc
+
+  - name: upgrade all packages again and autoclean
+    apt:
+      upgrade: yes
+      update_cache: yes
+      autoclean: yes
+      cache_valid_time: 86400
+
+  - name: deploy sshd config
+    copy:
+      src: /srv/d10_sshd_config
+      dest: /etc/ssh/sshd_config
+      owner: root
+      group: root
+      mode: '0644'
+
+  - name: deploy nginx conf
+    copy:
+      src: /srv/d10_nginx_conf
+      dest: /etc/nginx/nginx.conf
+      owner: root
+      group: root
+      mode: '0644'
+
+  - name: reboot
+    shell: systemctl reboot
